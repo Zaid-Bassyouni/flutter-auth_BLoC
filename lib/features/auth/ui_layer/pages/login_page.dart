@@ -8,13 +8,14 @@ login page :
   - if the user doesn't have an account then he goes to the Register page.
 
  */
-
 import 'package:auth_bloc/features/auth/ui_layer/components/google_sign_in_button.dart';
 import 'package:auth_bloc/features/auth/ui_layer/components/my_button.dart';
 import 'package:auth_bloc/features/auth/ui_layer/components/my_textfield.dart';
 import 'package:auth_bloc/features/auth/ui_layer/cubits/auth_cubit.dart';
+import 'package:auth_bloc/features/auth/ui_layer/cubits/auth_state.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:auth_bloc/features/auth/ui_layer/components/login_bear_animator.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key, required this.togglePages});
@@ -28,37 +29,78 @@ class LoginPage extends StatefulWidget {
 class _LoginPageState extends State<LoginPage> {
   final emailController = TextEditingController();
   final passwordController = TextEditingController();
-  late final authCubit = context.read<AuthCubit>();
+  final loginBearController = LoginBearAnimatorController();
 
-  //login button action.
+  final emailFocusNode = FocusNode();
+  final passwordFocusNode = FocusNode();
+
+  late AuthCubit authCubit;
+
+  @override
+  void initState() {
+    super.initState();
+    authCubit = context.read<AuthCubit>();
+
+    emailFocusNode.addListener(() {
+      if (!emailFocusNode.hasFocus) {
+        loginBearController.goIdle!();
+      }
+    });
+    passwordFocusNode.addListener(() {
+      if (!passwordFocusNode.hasFocus) {
+        loginBearController.goIdle!();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
+    emailController.dispose();
+    emailFocusNode.dispose();
+    passwordFocusNode.dispose();
+    passwordController.dispose();
+  }
+
+  // Login button action
   void loginAction() {
-    final String email = emailController.text;
-    final String password = passwordController.text;
+    final email = emailController.text;
+    final password = passwordController.text;
 
     if (email.isNotEmpty && password.isNotEmpty) {
       authCubit.login(email, password);
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Please Fill all the Fields.")));
+      loginBearController.reactToLogin?.call(false);
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Please fill all the fields.")));
     }
   }
 
-  //forgot password action
+  // Forgot password action
   void forgotPassword() {
+    final forgotEmailController = TextEditingController();
+
     showDialog(
       context: context,
       builder:
           (contex) => AlertDialog(
-            title: Text("Forgot Password?"),
-            content: MyTextField(controller: emailController, hintText: 'Enter Email..', obscureText: false),
+            title:
+             const Text("Forgot Password?"),
+            content: MyTextField(
+              controller: forgotEmailController,
+              hintText: 'example@gmail.com',
+              obscureText: false,
+              focusNode: emailFocusNode,
+              onTap: () => loginBearController.lookAround?.call(),
+              onChanged: (val) => loginBearController.moveEyes?.call(val),
+            ),
             actions: [
-              TextButton(onPressed: () => Navigator.pop(contex), child: const Text("Cancel")),
-
+              TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel")),
               TextButton(
                 onPressed: () async {
-                  String message = await authCubit.forgotPassward(emailController.text);
+                  final message = await authCubit.forgotPassward(forgotEmailController.text);
                   if (message == "Password reset email sent! Check your inbox ") {
                     Navigator.pop(context);
-                    emailController.clear();
+                    forgotEmailController.clear();
                   }
                   ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
                 },
@@ -72,77 +114,108 @@ class _LoginPageState extends State<LoginPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 25.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              //logo
-              Icon(Icons.lock_open, size: 80, color: Theme.of(context).colorScheme.primary),
+      body: BlocListener<AuthCubit, AuthState>(
+        listener: (context, state) {
+          if (state is AuthError) {
+            loginBearController.reactToLogin?.call(false);
+            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(state.massage)));
+          } else if (state is Authenticated) {
+            loginBearController.reactToLogin?.call(true);
+          }
+        },
+        
+        child: 
+        Center(
+          child: 
+          SingleChildScrollView(
+            padding:const 
+             EdgeInsets.symmetric(horizontal: 20.0),
+            child: 
+            Column(
+              mainAxisAlignment:
+               MainAxisAlignment.center,
+              children: [
+                // Page title
+                Text('L O G I N  P A G E', style: Theme.of(context).textTheme.titleLarge),
 
-              SizedBox(height: 25),
-              //name of the app
-              Text(' L O G I N  P A G E '),
-              SizedBox(height: 25),
+                const SizedBox(height: 20),
 
-              //email textfield.
-              MyTextField(controller: emailController, hintText: 'example@gmail.com', obscureText: false),
+                // Bear animation
+                LoginBearAnimator(controller: loginBearController),
 
-              SizedBox(height: 10),
+                const SizedBox(height: 25),
 
-              // passowrd textfield
-              MyTextField(controller: passwordController, hintText: "Password...", obscureText: true),
+                // Email text field
+                MyTextField(
+                  controller: emailController,
+                  hintText: 'example@gmail.com',
+                  obscureText: false,
+                  focusNode: emailFocusNode,
+                  onTap: () => loginBearController.lookAround?.call(),
+                  onChanged: (val) => loginBearController.moveEyes?.call(val),
+                ),
 
-              // forgot password
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  GestureDetector(
-                    onTap: () => forgotPassword(),
-                    child: Text(
-                      "Forgot Your Password? ",
-                      style: TextStyle(color: Theme.of(context).colorScheme.primary, fontWeight: FontWeight.bold),
+                const SizedBox(height: 10),
+
+                // Password text field
+                MyTextField(
+                  controller: passwordController,
+                  hintText: "Password...",
+                  obscureText: true,
+                  focusNode: passwordFocusNode,
+                  onTap: () => loginBearController.handsUp?.call(),
+                ),
+
+                // Forgot password
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    GestureDetector(
+                      onTap: forgotPassword,
+                      child: Text(
+                        "Forgot Your Password?",
+                        style: TextStyle(color: Theme.of(context).colorScheme.primary, fontWeight: FontWeight.bold),
+                      ),
                     ),
-                  ),
-                  //TextButton(onPressed: () {}, child: Text("Forgot Your Password? "))
-                ],
-              ),
-              SizedBox(height: 15),
-              //othre sign in logos
-              MyButton(onTap: loginAction, text: "Login"),
+                  ],
+                ),
 
-              SizedBox(height: 10),
+                const SizedBox(height: 15),
 
-              //Don't have an account? register now
-              Row(
-                mainAxisAlignment: MainAxisAlignment.start,
-                children: [
-                  Padding(padding: EdgeInsets.symmetric(horizontal: 6)),
-                  Text("Don't have an Account? ", style: TextStyle(color: Theme.of(context).colorScheme.primary, fontSize: 12)),
+                // Login button
+                MyButton(onTap: loginAction, text: "Login"),
 
-                  GestureDetector(
-                    onTap: widget.togglePages,
-                    child: Text(
-                      "Register now",
-                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.primary),
+                const SizedBox(height: 10),
+
+                // Register now prompt
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.start,
+                  children: [
+                    Text("Don't have an account? ", style: TextStyle(color: Theme.of(context).colorScheme.primary, fontSize: 12)),
+                    GestureDetector(
+                      onTap: widget.togglePages,
+                      child: Text(
+                        "Register now",
+                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.primary),
+                      ),
                     ),
-                  ),
-                ],
-              ),
+                  ],
+                ),
 
-              SizedBox(height: 10),
+                const SizedBox(height: 10),
 
-              Row(
-                children: [
-                  GoogleSignInButton(
-                    onTap: () async {
-                      authCubit.singinWithGoogle();
-                    },
-                  ),
-                ],
-              ),
-            ],
+                // Google sign-in
+                Row(
+                  children: [
+                    GoogleSignInButton(
+                      onTap: () async {
+                        authCubit.singinWithGoogle();
+                      },
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
       ),

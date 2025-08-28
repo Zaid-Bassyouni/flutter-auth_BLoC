@@ -4,27 +4,32 @@ class MyTextField extends StatelessWidget {
   final TextEditingController controller;
   final String hintText;
   final bool obscureText;
+  final FocusNode? focusNode;
+  final VoidCallback? onTap;
+  final ValueChanged<String>? onChanged;
 
   const MyTextField({
     super.key,
-   required this.controller,
-   required this.hintText,
-    required this.obscureText
-    });
+    required this.controller,
+    required this.hintText,
+    required this.obscureText,
+    required this.focusNode,
+    required this.onTap,
+    this.onChanged,
+  });
 
   @override
   Widget build(BuildContext context) {
     return TextField(
       controller: controller,
       obscureText: obscureText,
-      decoration: 
-      InputDecoration(
-        enabledBorder: 
-        OutlineInputBorder(
-          borderSide: 
-          BorderSide(color: Theme.of(context).colorScheme.tertiary),
-          borderRadius: 
-          BorderRadius.circular(20),
+      focusNode: focusNode,
+      onTap: onTap,
+      onChanged: onChanged,
+      decoration: InputDecoration(
+        enabledBorder: OutlineInputBorder(
+          borderSide: BorderSide(color: Theme.of(context).colorScheme.tertiary),
+          borderRadius: BorderRadius.circular(20),
         ),
 
         focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: Theme.of(context).colorScheme.primary)),

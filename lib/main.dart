@@ -1,5 +1,5 @@
 import 'package:auth_bloc/features/auth/data/firebase_auth_repo.dart';
-
+import 'package:rive/rive.dart';
 import 'package:auth_bloc/features/auth/ui_layer/cubits/auth_cubit.dart';
 import 'package:auth_bloc/features/auth/ui_layer/cubits/auth_state.dart';
 import 'package:auth_bloc/features/auth/ui_layer/pages/auth_page.dart';
@@ -16,6 +16,7 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  //await RiveNative.init();
   runApp(MyApp());
 }
 
@@ -34,8 +35,8 @@ class MyApp extends StatelessWidget {
 
         home: BlocConsumer<AuthCubit, AuthState>(
           builder: (context, state) {
-          //  print(state);
-            
+            //  print(state);
+
             if (state is UnAuthenticated) {
               return const AuthPage();
             }

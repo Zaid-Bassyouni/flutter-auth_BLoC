@@ -1,3 +1,4 @@
+import 'package:auth_bloc/features/auth/ui_layer/components/login_bear_animator.dart';
 import 'package:auth_bloc/features/auth/ui_layer/components/my_button.dart';
 import 'package:auth_bloc/features/auth/ui_layer/components/my_textfield.dart';
 import 'package:auth_bloc/features/auth/ui_layer/cubits/auth_cubit.dart';
@@ -13,110 +14,145 @@ class RegisterPage extends StatefulWidget {
 }
 
 class _RegisterPageState extends State<RegisterPage> {
+  final nameController = TextEditingController();
+  final emailController = TextEditingController();
+  final passwordController = TextEditingController();
+  final confirmPasswordController = TextEditingController();
+
+  final nameFocusNode = FocusNode();
+  final emailFocusNode = FocusNode();
+  final passwordFocusNode = FocusNode();
+  final confirmPasswordNode = FocusNode();
+
+  late final AuthCubit authCubit;
+  final loginBearController = LoginBearAnimatorController();
+
+  @override
+  void initState() {
+    super.initState();
+    authCubit = context.read<AuthCubit>();
+
+    nameFocusNode.addListener(() {
+      if (!nameFocusNode.hasFocus) {
+        loginBearController.goIdle!();
+      }
+    });
+    emailFocusNode.addListener(() {
+      if (!emailFocusNode.hasFocus) {
+        loginBearController.goIdle!();
+      }
+    });
+    passwordFocusNode.addListener(() {
+      if (!passwordFocusNode.hasFocus) {
+        loginBearController.goIdle!();
+      }
+    });
+    confirmPasswordNode.addListener(() {
+      if (!confirmPasswordNode.hasFocus) {
+        loginBearController.goIdle!();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    nameController.dispose();
+    emailController.dispose();
+    passwordController.dispose();
+    confirmPasswordController.dispose();
+    super.dispose(); //  Important to call super.dispose()
+  }
+
+  void register() {
+    final name = nameController.text;
+    final email = emailController.text;
+    final password = passwordController.text;
+    final confirmPw = confirmPasswordController.text;
+
+    if (name.isNotEmpty && email.isNotEmpty && password.isNotEmpty && confirmPw.isNotEmpty) {
+      if (password == confirmPw) {
+        authCubit.register(name, email, password);
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text(" Passwords not matching!")));
+      }
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text(" Please fill all the fields!")));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    final nameController = TextEditingController();
-    final emailController = TextEditingController();
-    final passwordController = TextEditingController();
-    final confirmPasswordController = TextEditingController();
-    final authCubit = context.read<AuthCubit>(); //= new AuthCubit(authRepo: authRepo);
-
-    void register() {
-      final String name = nameController.text;
-      final String email = emailController.text;
-      final String pw = passwordController.text;
-      final String confirmPw = confirmPasswordController.text;
-
-      if ( name.isNotEmpty && email.isNotEmpty && pw.isNotEmpty && confirmPw.isNotEmpty)
-       {
-        if (pw == confirmPw) {
-          authCubit.register(name, email, pw);
-        }
-         else
-        {
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Passwords do not match! Sorry ;( ")));
-        }
-      } 
-      else
-      {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Please fill all the Fields! ")));
-      }
-    }
-
-    @override // memory leaks.
-    void dispose() {
-      nameController.dispose();
-      emailController.dispose();
-      passwordController.dispose();
-      confirmPasswordController.dispose();
-    }
-
     return Scaffold(
       body: Center(
-        child: Padding(
+        child: SingleChildScrollView(
+          //  Prevents overflow on small screens
           padding: const EdgeInsets.symmetric(horizontal: 25.0),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              //logo
-              Icon(Icons.lock_open, size: 80, color: Theme.of(context).colorScheme.primary),
+              // Bear Animation
+              const SizedBox(height: 20),
+              LoginBearAnimator(controller: loginBearController),
 
-              SizedBox(height: 25),
-              //name of the app
-              Text(' R E G I S T E R   P A G E  '),
-              SizedBox(height: 25),
+              const SizedBox(height: 25),
 
-              //name textfield.
+              Text('R E G I S T E R   P A G E', style: Theme.of(context).textTheme.titleMedium),
+
+              const SizedBox(height: 25),
+
               MyTextField(
-              controller: nameController, 
-              hintText: 'Name', 
-              obscureText: false),
+                controller: nameController,
+                hintText: 'Name',
+                obscureText: false,
+                focusNode: nameFocusNode,
+                onTap: () => loginBearController.lookAround?.call(),
+                onChanged: (val) => loginBearController.moveEyes?.call(val),
+              ),
 
-              SizedBox(height: 10),
+              const SizedBox(height: 10),
 
-              //email textfield.
               MyTextField(
                 controller: emailController,
                 hintText: 'example@gmail.com',
-                obscureText: false
-                  ),
+                obscureText: false,
+                focusNode: emailFocusNode,
+                onTap: () => loginBearController.lookAround?.call(),
+                onChanged: (val) => loginBearController.moveEyes?.call(val),
+              ),
 
-              SizedBox(height: 10),
+              const SizedBox(height: 10),
 
-              // passowrd textfield
               MyTextField(
                 controller: passwordController,
-                hintText: "Password...",
-                obscureText: true
-                ),
+                hintText: 'Password',
+                obscureText: true,
+                focusNode: passwordFocusNode,
+                onTap: () => loginBearController.handsUp?.call(),
+              ),
 
-              SizedBox(height: 10),
+              const SizedBox(height: 10),
 
-              // passowrd textfield
               MyTextField(
                 controller: confirmPasswordController,
-                hintText: "Confirm Password",
-                obscureText: true
-                  ),
+                hintText: 'Confirm Password',
+                obscureText: true,
+                focusNode: confirmPasswordNode,
+                onTap: () => loginBearController.handsUp?.call(),
+              ),
 
-              // forgot password
-              SizedBox(height: 15),
-              //othre sign in logos
-              MyButton(
-               onTap: register,
-               text: "SIGN UP "
-               ),
+              const SizedBox(height: 15),
 
-              SizedBox(height: 10),
+              MyButton(onTap: register, text: "SIGN UP"),
 
-              //already have an account
+              const SizedBox(height: 10),
+
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text("Already have an account? ", style: TextStyle(color: Theme.of(context).colorScheme.primary)),
                   GestureDetector(
                     onTap: widget.togglePages,
-                    child: Text("login now ", style: TextStyle(color: Theme.of(context).colorScheme.primary, fontWeight: FontWeight.bold)),
+                    child: Text("login now", style: TextStyle(color: Theme.of(context).colorScheme.primary, fontWeight: FontWeight.bold)),
                   ),
                 ],
               ),
