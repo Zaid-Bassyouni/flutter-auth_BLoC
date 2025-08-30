@@ -61,6 +61,6 @@ flutter run
 
 
 
-## Author
+## Developed by
 
 - [Zaid Bassyouni](https://www.linkedin.com/in/zaid-bassyouni-430bab25b/)
