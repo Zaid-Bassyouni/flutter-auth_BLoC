@@ -1,9 +1,9 @@
 /*
 This page is determinse wether to show login page or the register page. 
  */
-import 'package:auth_bloc/features/auth/ui_layer/pages/login_page.dart';
-import 'package:auth_bloc/features/auth/ui_layer/pages/register_page.dart';
 import 'package:flutter/material.dart';
+import 'login_page.dart';
+import 'register_page.dart';
 
 class AuthPage extends StatefulWidget {
   const AuthPage({super.key});
@@ -13,22 +13,30 @@ class AuthPage extends StatefulWidget {
 }
 
 class _AuthPageState extends State<AuthPage> {
-  bool showLoadingPage = true;
+  // Initial screen is login
+  bool showLoginPage = true;
 
   void togglePage() {
     setState(() {
-      showLoadingPage = !showLoadingPage;
+      showLoginPage = !showLoginPage;
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    
-    if (showLoadingPage) {
-      return LoginPage(togglePages: togglePage,);
-    } else {
-      return RegisterPage( togglePages: togglePage);
-    }
-
+    return Scaffold(
+      body: AnimatedSwitcher(
+        duration: const Duration(milliseconds: 400),
+        switchInCurve: Curves.easeInOut,
+        switchOutCurve: Curves.easeInOut,
+        transitionBuilder: (Widget child, Animation<double> animation) {
+          return FadeTransition(opacity: animation, child: child);
+        },
+        child:
+            showLoginPage
+                ? LoginPage(key: const ValueKey('login'), togglePages: togglePage)
+                : RegisterPage(key: const ValueKey('register'), togglePages: togglePage),
+      ),
+    );
   }
 }

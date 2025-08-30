@@ -29,6 +29,7 @@ class _LoginBearAnimatorState extends State<LoginBearAnimator> {
   SMIBool? isHandsUp;
   SMIBool? isChecking;
   SMINumber? lookNum;
+  SMIBool? showHands;
 
   @override
   void initState() {
@@ -43,6 +44,7 @@ class _LoginBearAnimatorState extends State<LoginBearAnimator> {
     widget.controller.goIdle = () {
       isChecking?.change(false);
       isHandsUp?.change(false);
+      showHands?.change(false);
     };
   }
 
@@ -73,6 +75,9 @@ class _LoginBearAnimatorState extends State<LoginBearAnimator> {
           case 'numLook':
             lookNum = input as SMINumber;
             break;
+          case 'showHands':
+            showHands = input as SMIBool;
+            break;
         }
       }
       setState(() => artboard = art);
@@ -80,6 +85,7 @@ class _LoginBearAnimatorState extends State<LoginBearAnimator> {
   }
 
   void lookAround() {
+    showHands?.change(false);
     isChecking?.change(true);
     isHandsUp?.change(false);
     lookNum?.change(0);
@@ -90,6 +96,7 @@ class _LoginBearAnimatorState extends State<LoginBearAnimator> {
   }
 
   void handsUpOnEyes() {
+    showHands?.change(true);
     isHandsUp?.change(true);
     isChecking?.change(false);
   }
@@ -108,6 +115,6 @@ class _LoginBearAnimatorState extends State<LoginBearAnimator> {
   //build method.
   @override
   Widget build(BuildContext context) {
-    return artboard != null ? SizedBox(width: 300, height: 300, child: Rive(artboard: artboard!)) : const SizedBox.shrink();
+    return artboard != null ? SizedBox(width: 280, height: 280, child: Rive(artboard: artboard!)) : const SizedBox.shrink();
   }
 }

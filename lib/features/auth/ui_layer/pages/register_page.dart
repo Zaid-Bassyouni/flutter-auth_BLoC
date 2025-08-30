@@ -1,12 +1,15 @@
+import 'package:auth_bloc/features/auth/ui_layer/components/glassmorphism_snackbar.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:auth_bloc/features/auth/ui_layer/components/login_bear_animator.dart';
 import 'package:auth_bloc/features/auth/ui_layer/components/my_button.dart';
 import 'package:auth_bloc/features/auth/ui_layer/components/my_textfield.dart';
 import 'package:auth_bloc/features/auth/ui_layer/cubits/auth_cubit.dart';
-import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:auth_bloc/features/auth/ui_layer/cubits/auth_state.dart';
+import 'package:auth_bloc/features/auth/ui_layer/utils/bear_focus_manager.dart';
 
 class RegisterPage extends StatefulWidget {
-  const RegisterPage({super.key, required this.togglePages});
+  const RegisterPage({super.key, this.togglePages});
   final void Function()? togglePages;
 
   @override
@@ -24,34 +27,21 @@ class _RegisterPageState extends State<RegisterPage> {
   final passwordFocusNode = FocusNode();
   final confirmPasswordNode = FocusNode();
 
-  late final AuthCubit authCubit;
   final loginBearController = LoginBearAnimatorController();
+  late final BearFocusManager bearFocusManager;
+  late final AuthCubit authCubit;
 
   @override
   void initState() {
     super.initState();
     authCubit = context.read<AuthCubit>();
 
-    nameFocusNode.addListener(() {
-      if (!nameFocusNode.hasFocus) {
-        loginBearController.goIdle!();
-      }
-    });
-    emailFocusNode.addListener(() {
-      if (!emailFocusNode.hasFocus) {
-        loginBearController.goIdle!();
-      }
-    });
-    passwordFocusNode.addListener(() {
-      if (!passwordFocusNode.hasFocus) {
-        loginBearController.goIdle!();
-      }
-    });
-    confirmPasswordNode.addListener(() {
-      if (!confirmPasswordNode.hasFocus) {
-        loginBearController.goIdle!();
-      }
-    });
+    bearFocusManager =
+        BearFocusManager(controller: loginBearController)
+          ..register(nameFocusNode, BearReactionType.lookAround)
+          ..register(emailFocusNode, BearReactionType.lookAround)
+          ..register(passwordFocusNode, BearReactionType.handsUp)
+          ..register(confirmPasswordNode, BearReactionType.handsUp);
   }
 
   @override
@@ -60,106 +50,120 @@ class _RegisterPageState extends State<RegisterPage> {
     emailController.dispose();
     passwordController.dispose();
     confirmPasswordController.dispose();
-    super.dispose(); //  Important to call super.dispose()
+    bearFocusManager.dispose();
+    super.dispose();
   }
 
-  void register() {
-    final name = nameController.text;
-    final email = emailController.text;
+  void _register() {
+    final name = nameController.text.trim();
+    final email = emailController.text.trim();
     final password = passwordController.text;
     final confirmPw = confirmPasswordController.text;
 
-    if (name.isNotEmpty && email.isNotEmpty && password.isNotEmpty && confirmPw.isNotEmpty) {
-      if (password == confirmPw) {
-        authCubit.register(name, email, password);
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text(" Passwords not matching!")));
-      }
+    if (name.isEmpty || email.isEmpty || password.isEmpty || confirmPw.isEmpty) {
+      showTopGlassSnackbar(context: context, message: "Please fill all fields", type: SnackbarType.error);
+    } else if (password != confirmPw) {
+      showTopGlassSnackbar(context: context, message: "Passwords do not match", type: SnackbarType.error);
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text(" Please fill all the fields!")));
+      authCubit.register(name, email, password);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Center(
-        child: SingleChildScrollView(
-          //  Prevents overflow on small screens
-          padding: const EdgeInsets.symmetric(horizontal: 25.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              // Bear Animation
-              const SizedBox(height: 20),
-              LoginBearAnimator(controller: loginBearController),
-
-              const SizedBox(height: 25),
-
-              Text('R E G I S T E R   P A G E', style: Theme.of(context).textTheme.titleMedium),
-
-              const SizedBox(height: 25),
-
-              MyTextField(
-                controller: nameController,
-                hintText: 'Name',
-                obscureText: false,
-                focusNode: nameFocusNode,
-                onTap: () => loginBearController.lookAround?.call(),
-                onChanged: (val) => loginBearController.moveEyes?.call(val),
-              ),
-
-              const SizedBox(height: 10),
-
-              MyTextField(
-                controller: emailController,
-                hintText: 'example@gmail.com',
-                obscureText: false,
-                focusNode: emailFocusNode,
-                onTap: () => loginBearController.lookAround?.call(),
-                onChanged: (val) => loginBearController.moveEyes?.call(val),
-              ),
-
-              const SizedBox(height: 10),
-
-              MyTextField(
-                controller: passwordController,
-                hintText: 'Password',
-                obscureText: true,
-                focusNode: passwordFocusNode,
-                onTap: () => loginBearController.handsUp?.call(),
-              ),
-
-              const SizedBox(height: 10),
-
-              MyTextField(
-                controller: confirmPasswordController,
-                hintText: 'Confirm Password',
-                obscureText: true,
-                focusNode: confirmPasswordNode,
-                onTap: () => loginBearController.handsUp?.call(),
-              ),
-
-              const SizedBox(height: 15),
-
-              MyButton(onTap: register, text: "SIGN UP"),
-
-              const SizedBox(height: 10),
-
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text("Already have an account? ", style: TextStyle(color: Theme.of(context).colorScheme.primary)),
-                  GestureDetector(
-                    onTap: widget.togglePages,
-                    child: Text("login now", style: TextStyle(color: Theme.of(context).colorScheme.primary, fontWeight: FontWeight.bold)),
+    return BlocConsumer<AuthCubit, AuthState>(
+      listener: (context, state) {
+        if (state is Authenticated) {
+          loginBearController.reactToLogin?.call(true);
+          showTopGlassSnackbar(context: context, message: "Registered successfully", type: SnackbarType.success);
+          // Navigate to login page
+          widget.togglePages?.call();
+        } else if (state is AuthError) {
+          loginBearController.reactToLogin?.call(false);
+          showTopGlassSnackbar(context: context, message: state.massage, type: SnackbarType.error);
+        }
+      },
+      builder: (context, state) {
+        return Scaffold(
+          body: LayoutBuilder(
+            builder: (context, constraints) {
+              return Center(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 500),
+                    child: Column(
+                      children: [
+                        const SizedBox(height: 40),
+                        Text('R E G I S T E R   P A G E', style: Theme.of(context).textTheme.titleLarge, textAlign: TextAlign.center),
+                        LoginBearAnimator(controller: loginBearController),
+                        _buildGlassCard(),
+                        const SizedBox(height: 20),
+                        _buildLoginText(),
+                      ],
+                    ),
                   ),
-                ],
-              ),
-            ],
+                ),
+              );
+            },
           ),
-        ),
-      ),
+        );
+      },
     );
   }
+
+  Widget _buildGlassCard() => Container(
+    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 25),
+    decoration: BoxDecoration(
+      color: Colors.white.withOpacity(0.05),
+      borderRadius: BorderRadius.circular(20),
+      boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.25), blurRadius: 10, offset: const Offset(0, 6))],
+    ),
+    child: Column(
+      children: [
+        _buildNameField(),
+        const SizedBox(height: 12),
+        _buildEmailField(),
+        const SizedBox(height: 12),
+        _buildPasswordField(),
+        const SizedBox(height: 12),
+        _buildConfirmPasswordField(),
+        const SizedBox(height: 20),
+        MyButton(onTap: _register, text: "SIGN UP"),
+      ],
+    ),
+  );
+
+  Widget _buildNameField() => MyTextField(
+    controller: nameController,
+    hintText: 'Name',
+    obscureText: false,
+    focusNode: nameFocusNode,
+    onChanged: (val) => loginBearController.moveEyes?.call(val),
+  );
+
+  Widget _buildEmailField() => MyTextField(
+    controller: emailController,
+    hintText: 'example@gmail.com',
+    obscureText: false,
+    focusNode: emailFocusNode,
+    onChanged: (val) => loginBearController.moveEyes?.call(val),
+  );
+
+  Widget _buildPasswordField() =>
+      MyTextField(controller: passwordController, hintText: 'Password', obscureText: true, focusNode: passwordFocusNode);
+
+  Widget _buildConfirmPasswordField() =>
+      MyTextField(controller: confirmPasswordController, hintText: 'Confirm Password', obscureText: true, focusNode: confirmPasswordNode);
+
+  Widget _buildLoginText() => Row(
+    mainAxisAlignment: MainAxisAlignment.center,
+    children: [
+      Text("Already have an account? ", style: TextStyle(color: Theme.of(context).colorScheme.primary)),
+      GestureDetector(
+        onTap: widget.togglePages,
+        child: Text("login now", style: TextStyle(color: Theme.of(context).colorScheme.primary, fontWeight: FontWeight.bold)),
+      ),
+    ],
+  );
 }
